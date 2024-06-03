@@ -45,15 +45,9 @@ START_IMAGE_LINK = 'https://telegra.ph/file/82e3f9434e48d348fa223.jpg'
 # Start menu text
 START_MENU_TEXT = (
     "Hello there! I'm a song downloading bot with the following commands:\n\n"
-    "🎵 Use /audio to download a song in audio format.\n"
+    "🔍 Use /search to download youtube video or song \n"
     "   For example, send:\n"
-    "   /audio https://www.youtube.com/watch?v=IOcGS4D1tM0\n\n"
-    "🎥 Use /video to download a song in video format.\n"
-    "   For example, send:\n"
-    "   /video https://www.youtube.com/watch?v=IOcGS4D1tM0\n\n"
-    "🔍 Use /search to find the YouTube link by the song name.\n"
-    "   For example, send:\n"
-    "   /search jadugar"
+    "   /search royalty"
 )
 
 @bot.message_handler(commands=['start', 'help'])
