@@ -24,6 +24,11 @@ def send_await_message(chat_id, message_id, task):
             bot.edit_message_text(f"{task}{''.join(dots[dot_index])}", chat_id, message_id)
             dot_index = (dot_index + 1) % len(dots)
             time.sleep(0.5)
+        except telebot.apihelper.ApiException as e:
+            if "message to edit not found" in str(e):
+                pass  # Message to edit not found, continue
+            else:
+                raise  # Another exception occurred, raise it
         except Exception as e:
             break
 
@@ -84,6 +89,7 @@ def search_youtube(query):
     except Exception as e:
         print(f"Error searching for YouTube video: {e}")
         return None
+
 # Define the download_audio function
 def download_audio(message, data):
     try:
@@ -117,65 +123,45 @@ def handle_download(message, youtube_link, is_audio):
     threading.Thread(target=send_downloading_message, args=(message.chat.id, downloading_message.message_id)).start()
 
     # Download the YouTube video
-    yt = YouTube(youtube_link)
+    try:
+        yt = YouTube(youtube_link)
 
-    # Get the appropriate stream based on user's choice
-    if is_audio:
-        stream = yt.streams.filter(only_audio=True).first()
-        file_type = 'audio'
-    else:
-        stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
-        file_type = 'video'
-
-    if not stream:
-        bot.edit_message_text("No suitable stream found.", message.chat.id, downloading_message.message_id)
-        return
-
-    # Download the media
-    file_path = stream.download()
-
-    # Send the media file to the user if it exists
-    if os.path.exists(file_path):
-        # Send "uploading" message
-        bot.edit_message_text("Uploading.", message.chat.id, downloading_message.message_id)
-        # Start the thread to send the animated message
-        threading.Thread(target=send_uploading_message, args=(message.chat.id, downloading_message.message_id)).start()
-
-        media_file = open(file_path, 'rb')
+        # Get the appropriate stream based on user's choice
         if is_audio:
-            bot.send_audio(message.chat.id, media_file)
+            stream = yt.streams.filter(only_audio=True).first()
+            file_type = 'audio'
         else:
-            bot.send_video(message.chat.id, media_file)
-        media_file.close()
+            stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
+            file_type = 'video'
 
-        # Delete the downloaded file
-        os.remove(file_path)
+        if not stream:
+            bot.edit_message_text("No suitable stream found.", message.chat.id, downloading_message.message_id)
+            return
 
-    # Remove the "downloading" message
-    bot.delete_message(message.chat.id, downloading_message.message_id)
+        # Download the media
+        file_path = stream.download()
 
-    # Download the media
-    file_path = stream.download()
+        # Send the media file to the user if it exists
+        if os.path.exists(file_path):
+            # Send "uploading" message
+            bot.edit_message_text("Uploading.", message.chat.id, downloading_message.message_id)
+            # Start the thread to send the animated message
+            threading.Thread(target=send_uploading_message, args=(message.chat.id, downloading_message.message_id)).start()
 
-    # Send the media file to the user if it exists
-    if os.path.exists(file_path):
-        # Send "uploading" message
-        bot.edit_message_text("Uploading.", message.chat.id, downloading_message.message_id)
-        # Start the thread to send the animated message
-        threading.Thread(target=send_uploading_message, args=(message.chat.id, downloading_message.message_id)).start()
+            media_file = open(file_path, 'rb')
+            if is_audio:
+                bot.send_audio(message.chat.id, media_file)
+            else:
+                bot.send_video(message.chat.id, media_file)
+            media_file.close()
 
-        media_file = open(file_path, 'rb')
-        if is_audio:
-            bot.send_audio(message.chat.id, media_file)
-        else:
-            bot.send_video(message.chat.id, media_file)
-        media_file.close()
+            # Delete the downloaded file
+            os.remove(file_path)
 
-        # Delete the downloaded file
-        os.remove(file_path)
-
-    # Remove the "downloading" message
-    bot.delete_message(message.chat.id, downloading_message.message_id)
+    except Exception as e:
+        bot.reply_to(message, f"Error: {str(e)}")
+        print(f"Error handling download: {e}")
+        bot.delete_message(message.chat.id, downloading_message.message_id)
 
 # Start the bot
 bot.polling()
